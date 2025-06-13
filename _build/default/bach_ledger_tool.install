@@ -1,8 +1,0 @@
-lib: [
-  "_build/install/default/lib/bach_ledger_tool/META"
-  "_build/install/default/lib/bach_ledger_tool/dune-package"
-  "_build/install/default/lib/bach_ledger_tool/opam"
-]
-bin: [
-  "_build/install/default/bin/ledger_tool"
-]
