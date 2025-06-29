@@ -1,0 +1,8 @@
+; bach_ledger/dune
+
+(executable
+ (name main)
+ (public_name ledger_tool)
+ (modules main)
+ (libraries ledger_tool_lib cmdliner)
+)

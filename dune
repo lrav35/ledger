@@ -1,8 +1,0 @@
-; bach_ledger/dune
-
-(executable
- (name tool)
- (public_name ledger_tool)
- (modules tool)
- (libraries csv unix)
-)
