@@ -11,7 +11,14 @@ type transaction = {
 module StringMap = Map.Make(String)
 
 let calculate_balances transactions attendees =
-  let total_expenses = List.fold_left (fun acc t -> if t.ttype = Expense then acc +. t.amount else acc) 0.0 transactions in
+  let total_expenses =
+    List.fold_left (fun acc t ->
+      if t.ttype = Expense && List.mem t.person attendees then
+        acc +. t.amount
+      else
+        acc
+    ) 0.0 transactions
+  in
   let num_attendees = List.length attendees in
   let cost_per_person = if num_attendees > 0 then total_expenses /. float_of_int num_attendees else 0.0 in
   let payments_map =

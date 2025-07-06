@@ -1,0 +1,4 @@
+; test/dune
+(test
+ (name test_core)
+ (libraries ledger_tool_lib alcotest))
