@@ -1,3 +1,4 @@
+open Ledger_tool_lib.Transaction
 open Ledger_tool_lib.Core
 
 let epsilon = 0.0001

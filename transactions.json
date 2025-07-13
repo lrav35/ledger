@@ -1,0 +1,1 @@
+[{"date":"2025-07-12","ttype":["Expense"],"amount":1.5,"person":"Alice","description":"soda pop"},{"date":"2025-07-12","ttype":["Expense"],"amount":1.5,"person":"Bob","description":"soda pop"},{"date":"2025-07-12","ttype":["Payment"],"amount":1.5,"person":"Bob","description":"paying for my soda pop"}]

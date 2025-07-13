@@ -1,12 +1,4 @@
-type transaction_type = Expense | Payment
-
-type transaction = {
-  date : string;
-  ttype : transaction_type;
-  amount : float;
-  person : string;
-  description : string;
-}
+open Transaction
 
 module StringMap = Map.Make(String)
 

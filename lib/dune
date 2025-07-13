@@ -1,3 +1,4 @@
 (library
   (name ledger_tool_lib)
-  (libraries csv unix))
+  (libraries csv unix yojson)
+  (preprocess (pps ppx_deriving_yojson)))
