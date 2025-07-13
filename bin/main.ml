@@ -2,20 +2,11 @@ open Ledger_tool_lib
 open Cmdliner
 
 let read_list_from_file filename =
-  let ic = open_in filename in
-  let rec read_lines acc =
-    try
-      let line = input_line ic in
-      String.split_on_char ',' line
-      |> List.map String.trim
-      |> List.append acc
-      |> read_lines
-    with
-    | End_of_file ->
-        close_in ic;
-        acc
-  in
-  read_lines []
+  In_channel.with_open_text filename (fun ic ->
+    In_channel.input_lines ic
+    |> List.concat_map (fun line ->
+         String.split_on_char ',' line
+         |> List.map String.trim))
 
 let attendees = read_list_from_file "attendees.txt"
 
@@ -80,8 +71,6 @@ let execute_action action =
       else
         let (total_expenses, cost_per_person, balances) =
           Core.calculate_balances transactions attendees in
-        Printf.printf "DEBUG: %.2f\n" total_expenses;
-        Printf.printf "DEBUG: %.2f\n" cost_per_person;
         let summary = format_summary total_expenses cost_per_person balances in
         Ok summary
   | Action.ShowHelp ->
