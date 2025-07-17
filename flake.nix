@@ -54,5 +54,10 @@
             alcotest
           ] ++ [ pkgs.sqlite ];
         };
-      });
+      }) // {
+        nixosModules.ledger = { config, pkgs, ... }: {
+          imports = [ ./ledger-service.nix ];
+          environment.systemPackages = [ self.packages.x86_64-linux.default ];
+        };
+      };
 }
