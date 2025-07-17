@@ -10,7 +10,7 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-        ocamlPackages = pkgs.ocaml-ng.ocamlPackages_5_1;
+        ocamlPackages = pkgs.ocaml-ng.ocamlPackages_5_2;
       in
       {
         packages.default = pkgs.stdenv.mkDerivation {
@@ -21,9 +21,12 @@
             ocaml
             dune_3
             findlib
-            sqlite3
             lwt
-            ocaml-sqlite3
+            ocaml_sqlite3
+            csv
+            cmdliner
+            yojson
+            ppx_deriving_yojson
           ] ++ [ pkgs.sqlite ];
 
           buildPhase = ''
@@ -32,7 +35,7 @@
 
           installPhase = ''
             mkdir -p $out/bin
-            cp _build/default/src/my-api.exe $out/bin/my-api
+            cp _build/default/bin/main.exe $out/bin/main
           '';
         };
 
@@ -41,10 +44,14 @@
             ocaml
             dune_3
             findlib
-            sqlite3
             lwt
-            ocaml-sqlite3
-            ocaml-lsp-server
+            ocaml_sqlite3
+            ocaml-lsp
+            csv
+            cmdliner
+            yojson
+            ppx_deriving_yojson
+            alcotest
           ] ++ [ pkgs.sqlite ];
         };
       });
