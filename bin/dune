@@ -1,5 +1,3 @@
-; bach_ledger/dune
-
 (executable
  (name main)
  (public_name ledger_tool)

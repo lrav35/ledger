@@ -10,6 +10,7 @@ let read_list_from_file filename =
 
 let attendees = read_list_from_file "attendees.txt"
 
+
 (* === HANDLERS === *)
 let handle_add ttype amount description person =
   if amount <= 0.0 then

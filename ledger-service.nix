@@ -7,6 +7,7 @@
     serviceConfig = {
       ExecStart = "${pkgs.ledger}/bin/main";
       WorkingDirectory = "/var/lib/ledger";
+      Environment = "DB_PATH=/var/lib/ledger/ledger.db";
       Restart = "always";
       Environment = [ "DATABASE_PATH=/var/lib/ledger/data.db" ];
     };

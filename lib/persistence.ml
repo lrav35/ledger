@@ -1,5 +1,19 @@
-type t = Transaction.t list
+open Sqlite3
 
+let get_db_path () =
+  match Sys.getenv_opt "DB_PATH" with
+  | Some path -> path
+  | None -> "test.db"
+
+let init_db () =
+  let db_path = get_db_path () in
+  let db = db_open db_path in
+  let sql = "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT)" in
+  match exec db sql with
+  | Rc.OK -> db
+  | _ -> failwith "Failed to initialize database"
+
+type t = Transaction.t list
 let transactions_file = "transactions.json"
 
 let load () : Transaction.t list = 
