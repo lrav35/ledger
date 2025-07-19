@@ -6,6 +6,7 @@ type t = {
   amount : float;
   person : string;
   description : string;
+  event_name: string;
 } [@@deriving yojson]
 
 let get_date () =
@@ -14,8 +15,8 @@ let get_date () =
 
 let create_expense ~amount ~person ~description =
   let date = get_date () in
-  { date; ttype = Expense; amount; person; description; }
+  { date; ttype = Expense; amount; person; description; event_name = "FIX ME LATER" }
 
 let create_payment ~amount ~person ~description =
   let date = get_date () in
-  { date; ttype = Payment; amount; person; description; }
+  { date; ttype = Payment; amount; person; description; event_name = "FIX ME LATER"}

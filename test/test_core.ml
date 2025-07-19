@@ -37,31 +37,37 @@ let test_calculate_balances () =
           ttype = Payment;
           amount = 50.0;
           person = "Alice";
-          description = "Funding Activities"
+          description = "Funding Activities";
+          event_name = "event"
         };
         { date = "2025-10-27";
           ttype = Expense;
           amount = 90.0;
           person = "Bob";
-          description = "Group Dinner"
+          description = "Group Dinner";
+          event_name = "event"
         };
         { date = "2025-10-28";
           ttype = Expense;
           amount = 30.0;
           person = "Carol";
-          description = "Movie Tickets"
+          description = "Movie Tickets";
+          event_name = "event"
         };
         { date = "2025-10-28";
           ttype = Payment;
           amount = 40.0;
           person = "Carol";
-          description = "Contrinbuting to Total"
+          description = "Contrinbuting to Total";
+          event_name = "event"
         };
         { date = "2025-10-29";
           ttype = Expense;
           amount = 15.0;
           person = "Dave";
-          description = "Coffee" }
+          description = "Coffee";
+          event_name = "event"
+        }
     ] in
 
     let expected_total_expenses = 120.0 in
