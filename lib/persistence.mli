@@ -1,5 +1,5 @@
-type t = Transaction.t list
+val init_db : unit -> Sqlite3.db
 
-val load : unit -> t
+val load_db_by_event : Sqlite3.db -> string -> Transaction.t list
 
-val save : t -> unit
+val insert_transaction : Sqlite3.db -> Transaction.t -> unit

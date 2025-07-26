@@ -41,11 +41,10 @@ let load_db_by_event db event_name =
       WHERE event_name = ?" in
   let stmt = prepare db sql in
   let _ = bind stmt 1 (Data.TEXT event_name) in
-  let transactions = ref [] in
   let rec collect_rows acc =
     match step stmt with
     | Rc.ROW ->
-        let transaction = {
+        let transaction = Transaction.{
           date = column_text stmt 1;
           ttype = transaction_type_of_string (column_text stmt 2);
           amount = column_double stmt 3;
@@ -58,49 +57,57 @@ let load_db_by_event db event_name =
     | rc -> failwith ("Query failed: " ^ (Rc.to_string rc))
   in
   let result = collect_rows [] in
-  let () = finalize stmt in
+  let rc = finalize stmt in
+  if rc <> Rc.OK then
+    failwith ("Failed to finalize statement: " ^ (Rc.to_string rc));
   result
 
-let insert_transaction db transaction =
+let insert_transaction db (transaction : Transaction.t) =
   let sql = "INSERT INTO transactions (date, transaction_type, amount, person, description, event_name) VALUES (?, ?, ?, ?, ?, ?)" in
   let stmt = prepare db sql in
-  let () = bind stmt 1 (Data.TEXT transaction.date) in
-  let () = bind stmt 2 (Data.TEXT (transaction_type_to_string transaction.ttype)) in
-  let () = bind stmt 3 (Data.FLOAT transaction.amount) in
-  let () = bind stmt 4 (Data.TEXT transaction.person) in
-  let () = bind stmt 5 (Data.TEXT transaction.description) in
-  let () = bind stmt 6 (Data.TEXT transaction.event_name) in
+  let check_bind_result rc =
+    if rc <> Rc.OK then failwith ("Bind failed: " ^ (Rc.to_string rc)) in
+  
+  check_bind_result (bind stmt 1 (Data.TEXT transaction.date));
+  check_bind_result (bind stmt 2 (Data.TEXT (transaction_type_to_string transaction.ttype)));
+  check_bind_result (bind stmt 3 (Data.FLOAT transaction.amount));
+  check_bind_result (bind stmt 4 (Data.TEXT transaction.person));
+  check_bind_result (bind stmt 5 (Data.TEXT transaction.description));
+  check_bind_result (bind stmt 6 (Data.TEXT transaction.event_name));
   
   match step stmt with
   | Rc.DONE -> 
-      let () = finalize stmt in
-      ()
+      let rc = finalize stmt in
+      if rc <> Rc.OK then
+        failwith ("Failed to finalize statement: " ^ (Rc.to_string rc))
   | _ -> 
-      let () = finalize stmt in
+      let rc = finalize stmt in
+      let _ = if rc <> Rc.OK then
+        failwith ("Failed to finalize statement: " ^ (Rc.to_string rc)) in
       failwith "Insert failed"
 
 
-type t = Transaction.t list
-let transactions_file = "transactions.json"
-
-let load () : Transaction.t list = 
-  if Sys.file_exists transactions_file then
-    try
-      let json = Yojson.Safe.from_file transactions_file in
-      match Yojson.Safe.Util.to_list json with
-      | json_list ->
-        List.fold_left (fun acc json_item ->
-          match Transaction.of_yojson json_item with
-          | Ok transaction -> transaction :: acc
-          | Error _ -> acc
-        ) [] json_list
-        |> List.rev
-      | exception _ -> []
-    with _ -> []
-  else
-    []
-
-let save (transactions : t list) =
-  let json_list = List.map Transaction.to_yojson transactions in
-  let json = `List json_list in
-  Yojson.Safe.to_file transactions_file json
+(* type t = Transaction.t list *)
+(* let transactions_file = "transactions.json" *)
+(**)
+(* let load () : Transaction.t list =  *)
+(*   if Sys.file_exists transactions_file then *)
+(*     try *)
+(*       let json = Yojson.Safe.from_file transactions_file in *)
+(*       match Yojson.Safe.Util.to_list json with *)
+(*       | json_list -> *)
+(*         List.fold_left (fun acc json_item -> *)
+(*           match Transaction.of_yojson json_item with *)
+(*           | Ok transaction -> transaction :: acc *)
+(*           | Error _ -> acc *)
+(*         ) [] json_list *)
+(*         |> List.rev *)
+(*       | exception _ -> [] *)
+(*     with _ -> [] *)
+(*   else *)
+(*     [] *)
+(**)
+(* let save (transactions : t list) = *)
+(*   let json_list = List.map Transaction.to_yojson transactions in *)
+(*   let json = `List json_list in *)
+(*   Yojson.Safe.to_file transactions_file json *)

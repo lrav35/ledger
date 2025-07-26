@@ -1,4 +1,4 @@
-type transaction_type = Expense | Payment [@@deriving yojson]
+type transaction_type = Expense | Payment
 
 type t = {
   date : string;
@@ -7,7 +7,7 @@ type t = {
   person : string;
   description : string;
   event_name: string;
-} [@@deriving yojson]
+}
 
 let get_date () =
   let tm = Unix.localtime (Unix.time ()) in
