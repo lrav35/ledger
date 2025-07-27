@@ -38,35 +38,35 @@ let test_calculate_balances () =
           amount = 50.0;
           person = "Alice";
           description = "Funding Activities";
-          event_name = "event"
+          event = "event"
         };
         { date = "2025-10-27";
           ttype = Expense;
           amount = 90.0;
           person = "Bob";
           description = "Group Dinner";
-          event_name = "event"
+          event = "event"
         };
         { date = "2025-10-28";
           ttype = Expense;
           amount = 30.0;
           person = "Carol";
           description = "Movie Tickets";
-          event_name = "event"
+          event = "event"
         };
         { date = "2025-10-28";
           ttype = Payment;
           amount = 40.0;
           person = "Carol";
           description = "Contrinbuting to Total";
-          event_name = "event"
+          event = "event"
         };
         { date = "2025-10-29";
           ttype = Expense;
           amount = 15.0;
           person = "Dave";
           description = "Coffee";
-          event_name = "event"
+          event = "event"
         }
     ] in
 

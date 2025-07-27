@@ -8,111 +8,52 @@ let read_list_from_file filename =
          String.split_on_char ',' line
          |> List.map String.trim))
 
-let attendees = read_list_from_file "attendees.txt"
-
 
 (* === HANDLERS === *)
-let handle_add ttype amount description person =
+let handle_add ttype amount description person event =
   if amount <= 0.0 then
     Error "Amount must be positive"
   else
     match ttype with
     | Transaction.Expense ->
-      Ok (Action.AddExpense { amount; description; person })
+      Ok (Action.AddExpense { amount; description; person; event })
     | Transaction.Payment ->
-      Ok (Action.AddPayment { amount; description; person })
+      Ok (Action.AddPayment { amount; description; person; event })
 
-let handle_summarize () =
-  Ok Action.ShowSummary
+let handle_summarize event =
+  Ok (Action.ShowSummary { event })
 
 let handle_help () =
   Ok Action.ShowHelp
 
-(* === SUMMARY === *)
-
-let format_summary total_expenses cost_per_person balances =
-  let buffer = Buffer.create 256 in
-  
-  Buffer.add_string buffer "\n=== EXPENSE SUMMARY ===\n";
-  Printf.bprintf buffer "Total expenses: $%.2f\n" total_expenses;
-  Printf.bprintf buffer "Cost per person: $%.2f\n" cost_per_person;
-  Printf.bprintf buffer "Number of attendees: %d\n\n" (List.length balances);
-  
-  Buffer.add_string buffer "Individual Balances:\n";
-  Buffer.add_string buffer "Name\t\tPaid\t\tBalance\n";
-  Buffer.add_string buffer "----\t\t----\t\t-------\n";
-  
-  List.iter (fun (name, paid, balance) ->
-    let status = if balance > 0.0 then "owed" else if balance < 0.0 then "owes" else "even" in
-    Printf.bprintf buffer "%-15s\t$%.2f\t\t$%.2f (%s)\n" name paid balance status
-  ) balances;
-
-  Buffer.contents buffer
 
 (* === INTERPRETER === *)
 let interpret_effect db = function
-  | InsertTransaction transaction ->
+  | Effects.InsertTransaction transaction ->
       Persistence.insert_transaction db transaction;
       []
-  | LoadTransactionsByEvent event ->
+  | Effects.LoadTransactionsByEvent event ->
       Persistence.load_db_by_event db event
 
-(* Run all effects and collect results *)
 let run_effects db effects =
-  List.fold_left (fun acc effect ->
-    let result = interpret_effect db effect in
+  List.fold_left (fun acc eff ->
+    let result = interpret_effect db eff in
     acc @ result
   ) [] effects
 
-(* Execute an action and interpret its effects *)
 let execute_and_interpret db attendees action =
   let (msg, effects) = Execution.execute_action action in
-  
-  (* Run effects and get any data they produce *)
+
   let data = run_effects db effects in
-  
-  (* Post-process based on the action type *)
+
   match action with
   | Action.ShowSummary { event } ->
-      let summary = Execution.process_summary attendees event data in
+      let summary = Execution.process_summary attendees data event in
       Ok summary
   | _ ->
       Ok msg
 
-let execute_action action =
-  match action with
-  | Action.AddExpense { amount; description; person } ->
-      let expense = Transaction.create_expense ~amount ~description ~person in
-      Persistence.insert_transaction db expense
-      (* let transactions = Persistence.load () in *)
-      (* let expense = Transaction.create_expense ~amount ~description ~person in *)
-      (* let updated = expense :: transactions in *)
-      (* Persistence.save updated; *)
-      Ok (Printf.sprintf "Added expense: %s - $%.2f by %s" description amount person)
-  | Action.AddPayment { amount; description; person } ->
-
-      let payment = Transaction.create_payment ~amount ~description ~person in
-      Persistence.insert_transaction db payment
-      (* let transactions = Persistence.load () in *)
-      (* let payment = Transaction.create_payment ~amount ~description ~person in *)
-      (* let updated = payment :: transactions in *)
-      (* Persistence.save updated; *)
-      Ok (Printf.sprintf "Added payment: %s - $%.2f by %s" description amount person)
-  | Action.ShowSummary { event } ->
-      let transactions = Persistence.load_db_by_event db event in
-      (* let transactions = Persistence.load () in *)
-      if transactions = [] then
-        Ok "No transactions found."
-      else
-        let (total_expenses, cost_per_person, balances) =
-          Core.calculate_balances transactions attendees in
-        let summary = format_summary total_expenses cost_per_person balances in
-        Ok summary
-  | Action.ShowHelp ->
-      Ok "Available commands: expense, payment, summary"
-
 (* === USER INTERACTION === *)
-
 let execute_and_print db action =
   let attendees = read_list_from_file "attendees.txt" in
   match execute_and_interpret db attendees action with
@@ -123,13 +64,14 @@ let add_expense_cmd =
   let amount = Arg.(required & pos 0 (some float) None & info [] ~docv:"AMOUNT") in
   let person = Arg.(required & pos 1 (some string) None & info [] ~docv:"PERSON") in
   let description = Arg.(required & pos 2 (some string) None & info [] ~docv:"DESCRIPTION") in
+  let event = Arg.(required & pos 3 (some string) None & info [] ~docv:"EVENT") in
   let doc = "Add an expense transaction - cost associated with and will be split across entire group" in
-  let term = Term.(const (fun amt desc per ->
+  let term = Term.(const (fun amt desc per evt ->
     let db = Persistence.init_db () in
-    match handle_add Transaction.Expense amt desc per  with
-    | Ok action -> execute_and_print action
+    match handle_add Transaction.Expense amt desc per evt  with
+    | Ok action -> execute_and_print db action
     | Error msg -> print_endline ("Error: " ^ msg);
-  ) $ amount $ description $ person) in
+  ) $ amount $ description $ person $ event) in
   let info = Cmd.info "expense" ~doc in
   Cmd.v info term
 
@@ -137,24 +79,26 @@ let add_payment_cmd =
   let amount = Arg.(required & pos 0 (some float) None & info [] ~docv:"AMOUNT") in
   let person = Arg.(required & pos 1 (some string) None & info [] ~docv:"PERSON") in
   let description = Arg.(required & pos 2 (some string) None & info [] ~docv:"DESCRIPTION") in
+  let event = Arg.(required & pos 3 (some string) None & info [] ~docv:"EVENT") in
   let doc = "Add a payment transaction - money contributed by an individual to cover the expenses" in
-  let term = Term.(const (fun amt desc per ->
+  let term = Term.(const (fun amt desc per evt->
     let db = Persistence.init_db () in
-    match handle_add Transaction.Payment amt desc per  with
-    | Ok action -> execute_and_print db attendees action
+    match handle_add Transaction.Payment amt desc per evt with
+    | Ok action -> execute_and_print db action
     | Error msg -> print_endline ("Error: " ^ msg);
-  ) $ amount $ description $ person) in
+  ) $ amount $ description $ person $ event) in
   let info = Cmd.info "payment" ~doc in
   Cmd.v info term
 
 let summary_cmd =
-  let doc = "Calculate totals and generate a summary" in
-  let term = Term.(const (fun () ->
+  let event = Arg.(required & pos 0 (some string) None & info [] ~docv:"EVENT") in
+  let doc = "Calculate totals and generate a summary for the specified event" in
+  let term = Term.(const (fun evt ->
     let db = Persistence.init_db () in
-    match handle_summarize () with
-    | Ok action -> execute_and_print db attendees action
+    match handle_summarize evt with
+    | Ok action -> execute_and_print db action
     | Error msg -> print_endline ("Error: " ^ msg);
-  ) $ const ()) in
+  ) $ event ) in
   let info = Cmd.info "summary" ~doc in
   Cmd.v info term
 
@@ -163,7 +107,7 @@ let help_cmd =
   let term = Term.(const (fun () ->
     let db = Persistence.init_db () in
     match handle_help () with
-    | Ok action -> execute_and_print db attendees action
+    | Ok action -> execute_and_print db action
     | Error msg -> print_endline ("Error: " ^ msg);
   ) $ const ()) in
   let info = Cmd.info "help" ~doc in

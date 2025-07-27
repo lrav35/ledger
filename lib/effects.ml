@@ -12,6 +12,5 @@ let bind (value, effects1) f =
   let (new_value, effects2) = f value in
   (new_value, effects1 @ effects2)
 
-let add_an_effect effect pair =
-  let (value, things) = pair in
-  (value, effect :: things)
+let add_an_effect eff (value, effects) =
+  (value, eff :: effects)

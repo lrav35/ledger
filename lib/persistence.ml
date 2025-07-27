@@ -50,7 +50,7 @@ let load_db_by_event db event_name =
           amount = column_double stmt 3;
           person = column_text stmt 4;
           description = column_text stmt 5;
-          event_name;
+          event = column_text stmt 6;
         } in
         collect_rows (transaction :: acc)
     | Rc.DONE -> List.rev acc
@@ -73,7 +73,7 @@ let insert_transaction db (transaction : Transaction.t) =
   check_bind_result (bind stmt 3 (Data.FLOAT transaction.amount));
   check_bind_result (bind stmt 4 (Data.TEXT transaction.person));
   check_bind_result (bind stmt 5 (Data.TEXT transaction.description));
-  check_bind_result (bind stmt 6 (Data.TEXT transaction.event_name));
+  check_bind_result (bind stmt 6 (Data.TEXT transaction.event));
   
   match step stmt with
   | Rc.DONE -> 
@@ -85,29 +85,3 @@ let insert_transaction db (transaction : Transaction.t) =
       let _ = if rc <> Rc.OK then
         failwith ("Failed to finalize statement: " ^ (Rc.to_string rc)) in
       failwith "Insert failed"
-
-
-(* type t = Transaction.t list *)
-(* let transactions_file = "transactions.json" *)
-(**)
-(* let load () : Transaction.t list =  *)
-(*   if Sys.file_exists transactions_file then *)
-(*     try *)
-(*       let json = Yojson.Safe.from_file transactions_file in *)
-(*       match Yojson.Safe.Util.to_list json with *)
-(*       | json_list -> *)
-(*         List.fold_left (fun acc json_item -> *)
-(*           match Transaction.of_yojson json_item with *)
-(*           | Ok transaction -> transaction :: acc *)
-(*           | Error _ -> acc *)
-(*         ) [] json_list *)
-(*         |> List.rev *)
-(*       | exception _ -> [] *)
-(*     with _ -> [] *)
-(*   else *)
-(*     [] *)
-(**)
-(* let save (transactions : t list) = *)
-(*   let json_list = List.map Transaction.to_yojson transactions in *)
-(*   let json = `List json_list in *)
-(*   Yojson.Safe.to_file transactions_file json *)
