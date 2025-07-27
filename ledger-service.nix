@@ -71,9 +71,14 @@ in
       isSystemUser = true;
       group = cfg.group;
       home = cfg.dataDir;
+      createHome = true;
     };
 
     users.groups.${cfg.group} = {};
+
+    systemd.tmpfiles.rules = [
+      "d ${cfg.dataDir} 0755 ${cfg.user} ${cfg.group} -"
+    ];
 
     systemd.services.ledger = {
       description = "Ledger API Service";
@@ -89,12 +94,11 @@ in
         Restart = "always";
         RestartSec = "10s";
         
-        # Security settings
         NoNewPrivileges = true;
         PrivateTmp = true;
-        ProtectSystem = "strict";
-        ProtectHome = true;
-        ReadWritePaths = [ cfg.dataDir ];
+        # ProtectSystem = "strict";
+        # ProtectHome = true;
+        # ReadWritePaths = [ cfg.dataDir ];
       };
 
       environment = {
@@ -102,13 +106,6 @@ in
         DATABASE_PATH = cfg.databasePath;
         DB_PATH = cfg.databasePath; # Keep both for compatibility
       };
-
-      preStart = ''
-        # Ensure data directory exists and has correct permissions
-        mkdir -p ${cfg.dataDir}
-        chown ${cfg.user}:${cfg.group} ${cfg.dataDir}
-        chmod 755 ${cfg.dataDir}
-      '';
     };
 
     # Firewall configuration
