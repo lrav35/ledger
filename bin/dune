@@ -1,6 +1,6 @@
 (executable
- (name main)
+ (name server)
  (public_name ledger_tool)
- (modules main)
- (libraries ledger_tool_lib cmdliner)
+ (libraries ledger_tool_lib dream yojson lwt)
+ (preprocess (pps lwt_ppx))
 )

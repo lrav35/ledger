@@ -7,8 +7,10 @@
  (depends
   (ocaml (>= 5.0.0))
   (dune (>= 3.0))
-  (csv (>= 2.4))
   (sqlite3 (>= 5.3.1))
-  (cmdliner (>= 1.3))
+  (yojson (>= 2.2.2))
+  (dream (>= 1.0.0))
+  (lwt (>= 5.9.2))
+  (lwt_ppx (>= 5.9.2))
  )
 )

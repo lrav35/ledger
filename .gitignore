@@ -31,3 +31,6 @@ _opam/
 # Nix build result
 result
 result-*
+
+# testing
+test.db

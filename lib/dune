@@ -1,3 +1,3 @@
 (library
   (name ledger_tool_lib)
-  (libraries csv unix sqlite3))
+  (libraries unix sqlite3 yojson))

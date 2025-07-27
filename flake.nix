@@ -23,8 +23,9 @@
             findlib
             lwt
             ocaml_sqlite3
-            csv
-            cmdliner
+            dream
+            yojson
+            lwt_ppx
           ] ++ [ pkgs.sqlite ];
 
           buildPhase = ''
@@ -33,7 +34,7 @@
 
           installPhase = ''
             mkdir -p $out/bin
-            cp _build/default/bin/main.exe $out/bin/main
+            cp _build/default/bin/server.exe $out/bin/server
           '';
         };
 
@@ -45,9 +46,10 @@
             lwt
             ocaml_sqlite3
             ocaml-lsp
-            csv
-            cmdliner
             alcotest
+            dream
+            yojson
+            lwt_ppx
           ] ++ [ pkgs.sqlite ];
         };
       }) // {
