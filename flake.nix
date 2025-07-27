@@ -25,8 +25,6 @@
             ocaml_sqlite3
             csv
             cmdliner
-            yojson
-            ppx_deriving_yojson
           ] ++ [ pkgs.sqlite ];
 
           buildPhase = ''
@@ -49,8 +47,6 @@
             ocaml-lsp
             csv
             cmdliner
-            yojson
-            ppx_deriving_yojson
             alcotest
           ] ++ [ pkgs.sqlite ];
         };
