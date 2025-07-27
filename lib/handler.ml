@@ -6,20 +6,26 @@ let parse_transaction_json json_string =
     let person = json |> member "person" |> to_string in
     let description = json |> member "description" |> to_string in
     let event = json |> member "event" |> to_string in
-    Ok (amount, person, description, event)
+    let participants = 
+      json 
+      |> member "participants" 
+      |> to_list 
+      |> List.map to_string
+    in
+    Ok (amount, person, description, event, participants)
   with
   | _ -> Error "Invalid JSON format"
 
 (* === HANDLERS === *)
-let handle_add ttype amount description person event =
+let handle_add ttype amount description person event participants =
   if amount <= 0.0 then
     Error "Amount must be positive"
   else
     match ttype with
     | Transaction.Expense ->
-      Ok (Action.AddExpense { amount; description; person; event })
+      Ok (Action.AddExpense { amount; description; person; event; participants })
     | Transaction.Payment ->
-      Ok (Action.AddPayment { amount; description; person; event })
+      Ok (Action.AddPayment { amount; description; person; event; participants })
 
 let handle_summarize event =
   Ok (Action.ShowSummary { event })

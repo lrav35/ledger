@@ -38,8 +38,8 @@ let add_expense_handler request =
   let%lwt body = Dream.body request in
   match Handler.parse_transaction_json body with
   | Error msg -> (error_response msg)
-  | Ok (amount, person, description, event) ->
-      match Handler.handle_add Transaction.Expense amount description person event with
+  | Ok (amount, person, description, event, participants) ->
+      match Handler.handle_add Transaction.Expense amount description person event participants with
       | Error msg -> (error_response msg)
       | Ok action ->
           (match Handler.execute_and_interpret db (Lazy.force attendees) action with
@@ -51,8 +51,8 @@ let add_payment_handler request =
   let%lwt body = Dream.body request in
   match Handler.parse_transaction_json body with
   | Error msg ->  (error_response msg)
-  | Ok (amount, person, description, event) ->
-      match Handler.handle_add Transaction.Payment amount description person event with
+  | Ok (amount, person, description, event, participants) ->
+      match Handler.handle_add Transaction.Payment amount description person event participants with
       | Error msg -> (error_response msg)
       | Ok action ->
           (match Handler.execute_and_interpret db (Lazy.force attendees) action with

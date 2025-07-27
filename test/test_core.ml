@@ -24,9 +24,8 @@ let sorted_balance_list_testable =
 (* combine into testable value *)
 let summary_testable =
   let epsilon = 0.0001 in
-  Alcotest.triple
+  Alcotest.pair
     (Alcotest.float epsilon) (* total expenses *)
-    (Alcotest.float epsilon) (* per person cost *)
     sorted_balance_list_testable
 
 
@@ -38,53 +37,57 @@ let test_calculate_balances () =
           amount = 50.0;
           person = "Alice";
           description = "Funding Activities";
-          event = "event"
+          event = "event";
+          participants = []
         };
         { date = "2025-10-27";
           ttype = Expense;
           amount = 90.0;
           person = "Bob";
           description = "Group Dinner";
-          event = "event"
+          event = "event";
+          participants = ["Alice"; "Bob"; "Carol"]
         };
         { date = "2025-10-28";
           ttype = Expense;
           amount = 30.0;
           person = "Carol";
           description = "Movie Tickets";
-          event = "event"
+          event = "event";
+          participants = ["Alice"; "Bob"; "Carol"]
         };
         { date = "2025-10-28";
           ttype = Payment;
           amount = 40.0;
           person = "Carol";
           description = "Contrinbuting to Total";
-          event = "event"
+          event = "event";
+          participants = []
         };
         { date = "2025-10-29";
           ttype = Expense;
           amount = 15.0;
           person = "Dave";
           description = "Coffee";
-          event = "event"
+          event = "event";
+          participants = ["Dave"; "Eve"]
         }
     ] in
 
     let expected_total_expenses = 120.0 in
-    let expected_cost_per_person = 40.0 in
     let expected_balances = [
-        ("Alice", 50.0, -40.0 +. 50.0);
-        ("Bob", 90.0, -40.0 +. 90.0);
-        ("Carol", 70.0, -40.0 +. 30.0 +. 40.0);
+        ("Alice", 50.0, 10.0);
+        ("Bob", 90.0, 50.0);
+        ("Carol", 70.0, 30.0);
     ] in 
 
-    let expected = (expected_total_expenses, expected_cost_per_person, expected_balances) in
+    let expected = (expected_total_expenses, expected_balances) in
     let actual = calculate_balances input_transactions attendees in
     Alcotest.(check summary_testable) "should create a correct expense transaction" expected actual
 
 
 let test_empty_list () =
-  let expected = (0.0, 0.0, []) in
+  let expected = (0.0, []) in
   let actual = calculate_balances [] [] in
   Alcotest.check summary_testable "Empty list should result in zeros and empty list" expected actual
 
