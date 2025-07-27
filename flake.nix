@@ -55,7 +55,11 @@
       }) // {
         nixosModules.ledger = { config, pkgs, ... }: {
           imports = [ ./ledger-service.nix ];
-          environment.systemPackages = [ self.packages.x86_64-linux.default ];
+          nixpkgs.overlays = [
+            (final: prev: {
+              ledger = self.packages.${final.system}.default;
+            })
+          ];
         };
       };
 }

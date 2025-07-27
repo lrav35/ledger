@@ -1,33 +1,124 @@
-{ config, pkgs, ... }:
+{ config, lib, pkgs, ... }:
+
+with lib;
+
+let
+  cfg = config.services.ledger;
+in
 {
-  systemd.services.ledger = {
-    description = "Ledger API ervice";
-    after = [ "network.target" "wg-quick-wg0.service" ];
-    wantedBy = [ "multi-user.target" ];
-    serviceConfig = {
-      ExecStart = "${pkgs.ledger}/bin/main";
-      WorkingDirectory = "/var/lib/ledger";
-      Environment = "DB_PATH=/var/lib/ledger/ledger.db";
-      Restart = "always";
-      Environment = [ "DATABASE_PATH=/var/lib/ledger/data.db" ];
+
+  options.services.ledger = {
+    enable = mkEnableOption "Ledger API service";
+
+    port = mkOption {
+      type = types.port;
+      default = 8080;
+      description = "Port on which the ledger service will listen";
     };
-    preStart = ''
-      if [ ! -f /var/lib/ledger/data.db ]; then
-        ${pkgs.sqlite}/bin/sqlite3 /var/lib/ledger/data.db < /var/lib/ledger/schema.sql
-      fi
-    '';
+
+    user = mkOption {
+      type = types.str;
+      default = "ledger";
+      description = "User account under which ledger runs";
+    };
+
+    group = mkOption {
+      type = types.str;
+      default = "ledger";
+      description = "Group under which ledger runs";
+    };
+
+    dataDir = mkOption {
+      type = types.path;
+      default = "/var/lib/ledger";
+      description = "Directory where ledger stores its data";
+    };
+
+    databasePath = mkOption {
+      type = types.str;
+      default = "/var/lib/ledger/data.db";
+      description = "Path to the SQLite database file";
+    };
+
+    executableName = mkOption {
+      type = types.str;
+      default = "server";  # Changed from "main" to match your flake
+      description = "Name of the executable to run";
+    };
+
+    waitForVPN = mkOption {
+      type = types.bool;
+      default = true;
+      description = "Whether to wait for VPN connection before starting";
+    };
+
+    vpnInterface = mkOption {
+      type = types.str;
+      default = "wg0";
+      description = "VPN interface to restrict service to";
+    };
+
+    restrictToVPN = mkOption {
+      type = types.bool;
+      default = true;
+      description = "Whether to restrict firewall access to VPN interface only";
+    };
   };
 
-  system.activationScripts = {
-    setupLedgerDir = ''
-      mkdir -p /var/lib/ledger
-      cp ${./schema.sql} /var/lib/ledger/schema.sql
-      chown nobody:nogroup /var/lib/ledger
-      chmod 755 /var/lib/ledger
-    '';
-  };
+  config = mkIf cfg.enable {
+    # Create user and group
+    users.users.${cfg.user} = {
+      isSystemUser = true;
+      group = cfg.group;
+      home = cfg.dataDir;
+    };
 
-  # Restrict service to VPN interface
-  # networking.firewall.allowedTCPPorts = [];
-  # networking.firewall.interfaces.wg0.allowedTCPPorts = [ 8080 ];
+    users.groups.${cfg.group} = {};
+
+    systemd.services.ledger = {
+      description = "Ledger API Service";
+      after = [ "network.target" ] ++ optional cfg.waitForVPN "wg-quick-${cfg.vpnInterface}.service";
+      wantedBy = [ "multi-user.target" ];
+
+      serviceConfig = {
+        Type = "simple";
+        User = cfg.user;
+        Group = cfg.group;
+        ExecStart = "${pkgs.ledger}/bin/${cfg.executableName}";
+        WorkingDirectory = cfg.dataDir;
+        Restart = "always";
+        RestartSec = "10s";
+        
+        # Security settings
+        NoNewPrivileges = true;
+        PrivateTmp = true;
+        ProtectSystem = "strict";
+        ProtectHome = true;
+        ReadWritePaths = [ cfg.dataDir ];
+      };
+
+      environment = {
+        PORT = toString cfg.port;
+        DATABASE_PATH = cfg.databasePath;
+        DB_PATH = cfg.databasePath; # Keep both for compatibility
+      };
+
+      preStart = ''
+        # Ensure data directory exists and has correct permissions
+        mkdir -p ${cfg.dataDir}
+        chown ${cfg.user}:${cfg.group} ${cfg.dataDir}
+        chmod 755 ${cfg.dataDir}
+      '';
+    };
+
+    # Firewall configuration
+    networking.firewall = mkMerge [
+      (mkIf (!cfg.restrictToVPN) {
+        allowedTCPPorts = [ cfg.port ];
+      })
+      (mkIf cfg.restrictToVPN {
+        interfaces.${cfg.vpnInterface}.allowedTCPPorts = [ cfg.port ];
+      })
+    ];
+  };
 }
