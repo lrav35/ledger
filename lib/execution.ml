@@ -1,4 +1,4 @@
-let format_summary total_expenses balances owes_map event =
+let format_summary total_expenses balances owes_map event transactions =
   let buffer = Buffer.create 256 in
   Printf.bprintf buffer "\n=== EXPENSE SUMMARY FOR %s ===\n" event;
   Printf.bprintf buffer "Total expenses: $%.2f\n" total_expenses;
@@ -18,6 +18,24 @@ let format_summary total_expenses balances owes_map event =
          ) person_owes_map
      | None -> ())
   ) balances;
+  
+  Buffer.add_string buffer "\nTransaction Details:\n";
+  Buffer.add_string buffer "Date\t\tType\t\tAmount\t\tPerson\t\tDescription\t\tParticipants\n";
+  Buffer.add_string buffer "----\t\t----\t\t------\t\t------\t\t-----------\t\t------------\n";
+  List.iter (fun transaction ->
+    let type_str = match transaction.Transaction.ttype with
+      | Transaction.Expense -> "Expense"
+      | Transaction.Payment -> "Payment" in
+    let participants_str = String.concat ", " transaction.Transaction.participants in
+    Printf.bprintf buffer "%s\t%s\t\t$%.2f\t\t%-10s\t%-15s\t%s\n"
+      transaction.Transaction.date
+      type_str
+      transaction.Transaction.amount
+      transaction.Transaction.person
+      transaction.Transaction.description
+      participants_str
+  ) transactions;
+  
   Buffer.contents buffer
 
 let execute_action action =
@@ -43,5 +61,5 @@ let process_summary attendees transactions event =
   else
     let (total_expenses, balances, owes_map) =
       Core.calculate_balances transactions attendees in
-    format_summary total_expenses balances owes_map event
+    format_summary total_expenses balances owes_map event transactions
 
