@@ -4,22 +4,53 @@ module StringMap = Map.Make(String)
 
 let calculate_balances transactions attendees =
 
-  let expense_shares =
-    List.fold_left (fun map t ->
+  let (expense_shares, initial_owes_map) =
+    List.fold_left (fun (shares_map, owes_acc) t ->
       if t.ttype = Expense && List.mem t.person attendees then
         let participants = List.filter (fun p -> List.mem p attendees) t.participants in
         let num_participants = List.length participants in
         if num_participants > 0 then
           let cost_per_participant = t.amount /. float_of_int num_participants in
-          List.fold_left (fun acc_map participant ->
+          let updated_shares = List.fold_left (fun acc_map participant ->
             let current_owed = StringMap.find_opt participant acc_map |> Option.value ~default:0.0 in
             StringMap.add participant (current_owed +. cost_per_participant) acc_map
-          ) map participants
+          ) shares_map participants in
+          let updated_owes = List.fold_left (fun owes_map participant ->
+            if participant <> t.person then
+              let participant_owes = StringMap.find_opt participant owes_map |> Option.value ~default:StringMap.empty in
+              let current_owed_to_person = StringMap.find_opt t.person participant_owes |> Option.value ~default:0.0 in
+              let updated_participant_owes = StringMap.add t.person (current_owed_to_person +. cost_per_participant) participant_owes in
+              StringMap.add participant updated_participant_owes owes_map
+            else
+              owes_map
+          ) owes_acc participants in
+          (updated_shares, updated_owes)
         else
-          map
+          (shares_map, owes_acc)
       else
-        map
-    ) StringMap.empty transactions
+        (shares_map, owes_acc)
+    ) (StringMap.empty, StringMap.empty) transactions
+  in
+
+  let owes_map =
+    List.fold_left (fun owes_acc t ->
+      if t.ttype = Payment && List.mem t.person attendees then
+        match t.participants with
+        | [recipient] when List.mem recipient attendees ->
+            let payer_owes = StringMap.find_opt t.person owes_acc |> Option.value ~default:StringMap.empty in
+            let current_owed_to_recipient = StringMap.find_opt recipient payer_owes |> Option.value ~default:0.0 in
+            let new_amount_owed = max 0.0 (current_owed_to_recipient -. t.amount) in
+            let updated_payer_owes = 
+              if new_amount_owed > 0.0 then
+                StringMap.add recipient new_amount_owed payer_owes
+              else
+                StringMap.remove recipient payer_owes
+            in
+            StringMap.add t.person updated_payer_owes owes_acc
+        | _ -> owes_acc
+      else
+        owes_acc
+    ) initial_owes_map transactions
   in
 
   let total_expenses =
@@ -51,4 +82,4 @@ let calculate_balances transactions attendees =
     ) attendees
   in
 
-  (total_expenses, balances)
+  (total_expenses, balances, owes_map)

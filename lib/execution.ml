@@ -1,4 +1,4 @@
-let format_summary total_expenses balances event =
+let format_summary total_expenses balances owes_map event =
   let buffer = Buffer.create 256 in
   Printf.bprintf buffer "\n=== EXPENSE SUMMARY FOR %s ===\n" event;
   Printf.bprintf buffer "Total expenses: $%.2f\n" total_expenses;
@@ -8,7 +8,15 @@ let format_summary total_expenses balances event =
   Buffer.add_string buffer "----\t\t----\t\t-------\n";
   List.iter (fun (name, paid, balance) ->
     let status = if balance > 0.0 then "owed" else if balance < 0.0 then "owes" else "even" in
-    Printf.bprintf buffer "%-15s\t$%.2f\t\t$%.2f (%s)\n" name paid balance status
+    Printf.bprintf buffer "%-15s\t$%.2f\t\t$%.2f (%s)\n" name paid balance status;
+    
+    (* Show who this person owes money to *)
+    (match Core.StringMap.find_opt name owes_map with
+     | Some person_owes_map ->
+         Core.StringMap.iter (fun creditor amount ->
+           Printf.bprintf buffer "  -> owes $%.2f to %s\n" amount creditor
+         ) person_owes_map
+     | None -> ())
   ) balances;
   Buffer.contents buffer
 
@@ -33,7 +41,7 @@ let process_summary attendees transactions event =
   if transactions = [] then
     "No transactions found."
   else
-    let (total_expenses, balances) =
+    let (total_expenses, balances, owes_map) =
       Core.calculate_balances transactions attendees in
-    format_summary total_expenses balances event
+    format_summary total_expenses balances owes_map event
 
