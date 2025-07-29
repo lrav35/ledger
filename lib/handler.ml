@@ -1,8 +1,16 @@
 let parse_transaction_json json_string =
+
+  let amount_field j = 
+    match Yojson.Basic.Util.member "amount" j with
+    | `Float f -> f
+    | `Int i -> float_of_int i
+    | `String s -> float_of_string s
+    | _ -> failwith "amount: expected number or decimal string" in
+
   let open Yojson.Basic.Util in
   try
     let json = Yojson.Basic.from_string json_string in
-    let amount = json |> member "amount" |> to_float in
+    let amount = amount_field json in
     let person = json |> member "person" |> to_string in
     let description = json |> member "description" |> to_string in
     let event = json |> member "event" |> to_string in
