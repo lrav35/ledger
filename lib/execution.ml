@@ -1,42 +1,43 @@
 let format_summary total_expenses balances owes_map event transactions =
-  let buffer = Buffer.create 256 in
-  Printf.bprintf buffer "\n=== EXPENSE SUMMARY FOR %s ===\n" event;
-  Printf.bprintf buffer "Total expenses: $%.2f\n" total_expenses;
-  Printf.bprintf buffer "Number of attendees: %d\n\n" (List.length balances);
-  Buffer.add_string buffer "Individual Balances:\n";
-  Buffer.add_string buffer "Name\t\tPaid\t\tBalance\n";
-  Buffer.add_string buffer "----\t\t----\t\t-------\n";
-  List.iter (fun (name, paid, balance) ->
+  let individual_balances = List.map (fun (name, paid, balance) ->
     let status = if balance > 0.0 then "owed" else if balance < 0.0 then "owes" else "even" in
-    Printf.bprintf buffer "%-15s\t$%.2f\t\t$%.2f (%s)\n" name paid balance status;
-    
-    (* Show who this person owes money to *)
-    (match Core.StringMap.find_opt name owes_map with
-     | Some person_owes_map ->
-         Core.StringMap.iter (fun creditor amount ->
-           Printf.bprintf buffer "  -> owes $%.2f to %s\n" amount creditor
-         ) person_owes_map
-     | None -> ())
-  ) balances;
+    let owes_to = match Core.StringMap.find_opt name owes_map with
+      | Some person_owes_map ->
+          Core.StringMap.fold (fun creditor amount acc ->
+            `Assoc [("creditor", `String creditor); ("amount", `Float amount)] :: acc
+          ) person_owes_map []
+      | None -> []
+    in
+    `Assoc [
+      ("name", `String name);
+      ("paid", `Float paid);
+      ("balance", `Float balance);
+      ("status", `String status);
+      ("owes_to", `List owes_to)
+    ]
+  ) balances in
   
-  Buffer.add_string buffer "\nTransaction Details:\n";
-  Buffer.add_string buffer "Date\t\tType\t\tAmount\t\tPerson\t\tDescription\t\tParticipants\n";
-  Buffer.add_string buffer "----\t\t----\t\t------\t\t------\t\t-----------\t\t------------\n";
-  List.iter (fun transaction ->
+  let transaction_details = List.map (fun transaction ->
     let type_str = match transaction.Transaction.ttype with
-      | Transaction.Expense -> "Expense"
-      | Transaction.Payment -> "Payment" in
-    let participants_str = String.concat ", " transaction.Transaction.participants in
-    Printf.bprintf buffer "%s\t%s\t\t$%.2f\t\t%-10s\t%-15s\t%s\n"
-      transaction.Transaction.date
-      type_str
-      transaction.Transaction.amount
-      transaction.Transaction.person
-      transaction.Transaction.description
-      participants_str
-  ) transactions;
+      | Transaction.Expense -> "expense"
+      | Transaction.Payment -> "payment" in
+    `Assoc [
+      ("date", `String transaction.Transaction.date);
+      ("type", `String type_str);
+      ("amount", `Float transaction.Transaction.amount);
+      ("person", `String transaction.Transaction.person);
+      ("description", `String transaction.Transaction.description);
+      ("participants", `List (List.map (fun p -> `String p) transaction.Transaction.participants))
+    ]
+  ) transactions in
   
-  Buffer.contents buffer
+  `Assoc [
+    ("event", `String event);
+    ("total_expenses", `Float total_expenses);
+    ("attendee_count", `Int (List.length balances));
+    ("individual_balances", `List individual_balances);
+    ("transactions", `List transaction_details)
+  ]
 
 let execute_action action =
   match action with
@@ -57,7 +58,7 @@ let execute_action action =
 
 let process_summary attendees transactions event =
   if transactions = [] then
-    "No transactions found."
+    `Assoc [("message", `String "No transactions found.")]
   else
     let (total_expenses, balances, owes_map) =
       Core.calculate_balances transactions attendees in

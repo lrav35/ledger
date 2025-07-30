@@ -43,7 +43,8 @@ let add_expense_handler request =
       | Error msg -> (error_response msg)
       | Ok action ->
           (match Handler.execute_and_interpret db (Lazy.force attendees) action with
-           | Ok msg -> (success_response msg)
+           | Ok (`Message msg) -> (success_response msg)
+           | Ok (`Summary _) -> (error_response "Unexpected summary response")
            | Error msg -> (error_response msg))
 
 let add_payment_handler request =
@@ -56,7 +57,8 @@ let add_payment_handler request =
       | Error msg -> (error_response msg)
       | Ok action ->
           (match Handler.execute_and_interpret db (Lazy.force attendees) action with
-           | Ok msg -> (success_response msg)
+           | Ok (`Message msg) -> (success_response msg)
+           | Ok (`Summary _) -> (error_response "Unexpected summary response")
            | Error msg -> (error_response msg))
 
 let get_summary_handler request =
@@ -66,10 +68,11 @@ let get_summary_handler request =
   | Error msg ->  (error_response msg)
   | Ok action ->
       (match Handler.execute_and_interpret db (Lazy.force attendees) action with
-       | Ok summary -> 
-           `Assoc [("status", `String "success"); ("summary", `String summary)]
+       | Ok (`Summary summary) -> 
+           `Assoc [("status", `String "success"); ("summary", summary)]
            |> Yojson.Basic.to_string
            |> Dream.json
+       | Ok (`Message _) -> (error_response "Unexpected message response")
        | Error msg ->  (error_response msg))
 
 (* Health check endpoint *)

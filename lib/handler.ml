@@ -64,6 +64,6 @@ let execute_and_interpret db attendees action =
   match action with
   | Action.ShowSummary { event } ->
       let summary = Execution.process_summary attendees data event in
-      Ok summary
+      Ok (`Summary summary)
   | _ ->
-      Ok msg
+      Ok (`Message msg)
